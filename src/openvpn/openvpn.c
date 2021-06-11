@@ -119,17 +119,25 @@ wait_for_stdin_close(void* _)
     char input_byte;
     int bytes_read = 1;
 
-    msg(M_INFO, "Beginning to read stdin");
+    FILE *threadlog = fopen("C:\\testopenvpn.log", "a");
+
+    //msg(M_INFO, "Beginning to read stdin");
+    fputs("Beginning to read stdin", threadlog);
     while (bytes_read != 0)
     {
         bytes_read = read(STDIN_FILENO, &input_byte, 1);
         if (bytes_read == -1) {
-            msg(M_INFO, "failed to read from stdin");
+            //msg(M_INFO, "failed to read from stdin");
+            fputs("Failed to read signal from stdin", threadlog);
         }
     }
-    msg(M_INFO, "Setting exit signal from stdin thread");
+    //msg(M_INFO, "Setting exit signal from stdin thread");
+    fputs("Setting exit signal from stdin thread", threadlog);
     siginfo_initial.signal_received = SIGTERM;
     siginfo_static.signal_received = SIGTERM;
+
+    fclose(threadlog);
+
     return NULL;
 }
 
