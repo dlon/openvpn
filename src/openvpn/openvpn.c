@@ -70,12 +70,14 @@ tunnel_point_to_point(struct context *c)
     c->mode = CM_P2P;
 
     /* initialize tunnel instance */
+    msg(M_INFO, "Initializing tunnel instance (clearing signal)");
     init_instance_handle_signals(c, c->es, CC_HARD_USR1_TO_HUP);
     if (IS_SIG(c))
     {
         return;
     }
 
+    msg(M_INFO, "Entering main loop");
     /* main event loop */
     while (true)
     {
@@ -117,13 +119,15 @@ wait_for_stdin_close(void* _)
     char input_byte;
     int bytes_read = 1;
 
+    msg(M_INFO, "Beginning to read stdin");
     while (bytes_read != 0)
     {
         bytes_read = read(STDIN_FILENO, &input_byte, 1);
         if (bytes_read == -1) {
-            perror("failed to read from stdin");
+            msg(M_INFO, "failed to read from stdin");
         }
     }
+    msg(M_INFO, "Setting exit signal from stdin thread");
     siginfo_initial.signal_received = SIGTERM;
     siginfo_static.signal_received = SIGTERM;
     return NULL;
@@ -181,6 +185,8 @@ openvpn_main(int argc, char *argv[])
     CLEAR(siginfo_initial);
     start_shutdown_listener();
 
+    msg(M_INFO, "Registered shutdown listener");
+
     /* signify first time for components which can
      * only be initialized once per program instantiation. */
     c.first_time = true;
@@ -203,6 +209,7 @@ openvpn_main(int argc, char *argv[])
             /* static signal info object */
             siginfo_static = siginfo_initial;
             c.sig = &siginfo_static;
+            msg(M_INFO, "Clearing signal object");
 
             /* initialize garbage collector scoped to context object */
             gc_init(&c.gc);
@@ -329,6 +336,8 @@ openvpn_main(int argc, char *argv[])
                         ASSERT(0);
                 }
 
+                msg(M_INFO, "Left tunnel loop");
+
                 /* indicates first iteration -- has program-wide scope */
                 c.first_time = false;
 
@@ -343,12 +352,16 @@ openvpn_main(int argc, char *argv[])
             }
             while (c.sig->signal_received == SIGUSR1);
 
+            msg(M_INFO, "Left inner loop");
+
             env_set_destroy(c.es);
             uninit_options(&c.options);
             gc_reset(&c.gc);
             net_ctx_free(&c.net_ctx);
         }
         while (c.sig->signal_received == SIGHUP);
+
+        msg(M_INFO, "Left outer loop (bye)");
     }
 
     context_gc_free(&c);
